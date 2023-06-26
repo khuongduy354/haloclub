@@ -1,3 +1,4 @@
+from channels.generic.websocket import json
 import websocket
 import unittest
 
@@ -17,7 +18,8 @@ class WebSocketTest(unittest.TestCase):
     def on_message(self, ws, message):
         # Implement your message handling logic here
         # Assert the expected result based on the received message
-        self.assertEqual(message, "Expected message")
+        message = json.loads(message)["message"]
+        self.assertEqual(message, "asdf")
 
     def on_error(self, ws, error):
         pass
@@ -32,7 +34,7 @@ class WebSocketTest(unittest.TestCase):
 
     def on_open(self, ws):
         # Send a message to the server
-        ws.send("Hello, server!")
+        ws.send(json.dumps({"type": "chat_message", "payload": "asdf"}))
         # Assert any expected behavior after sending a message
         self.assertTrue(True)
 
