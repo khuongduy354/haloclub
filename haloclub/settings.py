@@ -22,6 +22,8 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = "django-insecure-p^*6d_oa+x4ht=6^-=%n7jfd(pf(mv5sz@+h=*9+y(!z84*798"
 
+
+WS4REDIS_EXPIRE = 0
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
@@ -32,10 +34,10 @@ ALLOWED_HOSTS = []
 ASGI_APPLICATION = "haloclub.asgi.application"
 CHANNEL_LAYERS = {
     "default": {
-        "BACKEND": "channels_redis.core.RedisChannelLayer",  # redis only
-        "CONFIG": {
-            "hosts": [("127.0.0.1", 6379)],
-        },
+        "BACKEND": "channels.layers.InMemoryChannelLayer",  # redis only
+        # "CONFIG": {
+        #     "hosts": [("127.0.0.1", 6379)],
+        # },
     },
 }
 # Application definition
