@@ -1,5 +1,5 @@
 import json
-from numpy import argpartition
+from numpy import argpartition, random
 from pytube import YouTube
 from channels.generic.websocket import AsyncWebsocketConsumer
 
@@ -15,6 +15,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
     async def connect(self):
         # scope contain socket info
         payload = self.scope["url_route"]["kwargs"]
+        self.startedSinging = False
         self.room_name = "roomname"
         self.room_group_name = "chat_%s" % self.room_name
 
@@ -57,6 +58,11 @@ class ChatConsumer(AsyncWebsocketConsumer):
 
      # broadcast video, determined the current singing user
     async def select_video(self, event):
+        if not self.startedSinging:
+            self.startedSinging = True
+            if not self.userList:
+                return
+            self.userList = random.shuffle(self.userList)
         # handle video
         video_id = event["payload"]["video_id"]
         user_id = event["payload"]["user_id"]
@@ -98,6 +104,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
                         user["score"] = 0
                         user["ratedThisRound"] = False
                         user["isSinging"] = False
+                    self.startedSinging = False
                     # TODO: quotes here
                     await self.send(text_data=json.dumps({"winner": winner,  "quotes": "", "userList": self.userList, "event_type": "finish_game"}))
                 else:
