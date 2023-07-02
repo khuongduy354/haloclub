@@ -52,6 +52,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
             "isSinging": False
         }
         self.userList.append(userInfo)
+
         await self.send(text_data=json.dumps({"event_type": "initialize", "userList": self.userList}))
 
      # broadcast video, determined the current singing user
@@ -121,7 +122,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
             target["score"] += score
             user["ratedThisRound"] = True
 
-        await self.send(text_data=json.dumps({"user_id": user_id, "rateFor": target, "ratedScore": score, "event_type": "rating"}))
+        await self.send(text_data=json.dumps({"user_id": user_id, "rate_for": target, "rated_score": score, "event_type": "rating"}))
 #     # group handler
 #     # type: chat_message forward to this
 #
