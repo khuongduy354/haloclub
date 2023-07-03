@@ -58,14 +58,22 @@ class ChatConsumer(AsyncWebsocketConsumer):
 
      # broadcast video, determined the current singing user
     async def select_video(self, event):
+        user_id = event["payload"]["user_id"]
+        video_id = event["payload"]["video_id"]
+
+        user = get_user(self.userList, "user_id", user_id)
+        if not user:
+            return
         if not self.startedSinging:
             self.startedSinging = True
             if not self.userList:
                 return
-            self.userList = random.shuffle(self.userList)
+            self.userList = [user] + random.shuffle(self.userList[1:])
+            user["isSinging"] = True
+        elif not user["isSinging"]:
+            return
         # handle video
-        video_id = event["payload"]["video_id"]
-        user_id = event["payload"]["user_id"]
+
         # video_url = f'https://www.youtube.com/watch?v={video_id}'
         #
         # # Download the audio file from YouTube
@@ -81,11 +89,9 @@ class ChatConsumer(AsyncWebsocketConsumer):
         #
         # # set the user to isSinging
         # user_id = event["payload"]["user_id"]
-        user = get_user(self.userList, "user_id", user_id)
         if user == None:
             # TODO: error
             return
-        user["isSinging"] = True
 
         await self.send(text_data=json.dumps({"video_id": video_id, "user_id": user_id, "event_type": "select_video"}))
 
