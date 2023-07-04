@@ -93,7 +93,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
             # TODO: error
             return
 
-        await self.send(text_data=json.dumps({"video_id": video_id, "user_id": user_id, "event_type": "select_video"}))
+        await self.send(text_data=json.dumps({"video_id": video_id, "user_id": user_id, "singer_name": user["username"], "event_type": "select_video"}))
 
 # end the rating, annouce scores, next singer
     async def finish_rating(self, event):
@@ -130,7 +130,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
             return
 
         if target["user_id"] == user["user_id"]:
-            await self.send(text_data=json.dumps({"user_id": user_id, "score": score, "event_type": "start_rating", "allowRating": True}))
+            await self.send(text_data=json.dumps({"user_id": user_id,  "event_type": "start_rating"}))
         elif user["ratedThisRound"] == False:
             target["score"] += score
             user["ratedThisRound"] = True
