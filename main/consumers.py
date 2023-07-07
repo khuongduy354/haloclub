@@ -14,9 +14,8 @@ def get_user(userList: list, attr: str, value):
 class ChatConsumer(AsyncWebsocketConsumer):
     async def connect(self):
         # scope contain socket info
-        payload = self.scope["url_route"]["kwargs"]
         self.startedSinging = False
-        self.room_name = "roomname"
+        self.room_name = self.scope["url_route"]["kwargs"]["roomname"]
         self.room_group_name = "chat_%s" % self.room_name
 
         # Join room group
@@ -52,6 +51,9 @@ class ChatConsumer(AsyncWebsocketConsumer):
             "ratedThisRound": False,
             "isSinging": False
         }
+        for user in self.userList:
+            if user["user_id"] == user_id:
+                return
         self.userList.append(userInfo)
 
         await self.send(text_data=json.dumps({"event_type": "initialize", "userList": self.userList}))
@@ -69,37 +71,17 @@ class ChatConsumer(AsyncWebsocketConsumer):
             if not self.userList:
                 return
 
-            self.userList.remove(user["user_id"])
-            random.shuffle(self.userList)
-            self.userList.insert(0, user)
+            random.shuffle(self.userList[1:])
 
             user["isSinging"] = True
-        elif not user["isSinging"]:
-            return
-        # handle video
 
-        # video_url = f'https://www.youtube.com/watch?v={video_id}'
-        #
-        # # Download the audio file from YouTube
-        # audio = YouTube(video_url).streams.filter(
-        #     only_audio=True).first()
-        # if not audio:
-        #     return
-        #
-        # # todo: handle video play here
-        # audio_file_path = audio.download()
-        # with open(audio_file_path, 'rb') as file:
-        #     audio_data = file.read()
-        #
-        # # set the user to isSinging
-        # user_id = event["payload"]["user_id"]
-        if user == None:
-            # TODO: error
-            return
+            await self.send(text_data=json.dumps({"video_id": video_id, "user_id": user_id, "singer_name": user["username"], "event_type": "select_video"}))
+        elif user["isSinging"]:
+            await self.send(text_data=json.dumps({"video_id": video_id, "user_id": user_id, "singer_name": user["username"], "event_type": "select_video"}))
 
-        await self.send(text_data=json.dumps({"video_id": video_id, "user_id": user_id, "singer_name": user["username"], "event_type": "select_video"}))
 
 # end the rating, annouce scores, next singer
+
     async def finish_rating(self, event):
         user_id = event["payload"]["user_id"]
         for (id, user) in enumerate(self.userList):
