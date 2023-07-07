@@ -68,7 +68,11 @@ class ChatConsumer(AsyncWebsocketConsumer):
             self.startedSinging = True
             if not self.userList:
                 return
-            self.userList = [user] + random.shuffle(self.userList[1:])
+
+            self.userList.remove(user["user_id"])
+            random.shuffle(self.userList)
+            self.userList.insert(0, user)
+
             user["isSinging"] = True
         elif not user["isSinging"]:
             return
