@@ -116,12 +116,11 @@ class ChatConsumer(AsyncWebsocketConsumer):
             return
 
         if target["user_id"] == user["user_id"]:
-            await self.send(text_data=json.dumps({"user_id": user_id,  "event_type": "start_rating"}))
+            await self.send(text_data=json.dumps({"user_id": user_id,  "event_type": "start_rating", "singer_name": user["username"]}))
         elif user["ratedThisRound"] == False:
-            target["score"] += score
+            target["score"] += int(score)
             user["ratedThisRound"] = True
-
-        await self.send(text_data=json.dumps({"user_id": user_id, "rate_for": target, "rated_score": score, "event_type": "rating"}))
+            await self.send(text_data=json.dumps({"user_id": user_id, "rate_for": target, "rated_score": score, "event_type": "rating"}))
 #     # group handler
 #     # type: chat_message forward to this
 #
