@@ -56,7 +56,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
                 return
         self.userList.append(userInfo)
 
-        await self.send(text_data=json.dumps({"event_type": "initialize", "userList": self.userList}))
+        await self.send(text_data=json.dumps({"event_type": "initialize", "userList": self.userList, "new_user": userInfo}))
 
      # broadcast video, determined the current singing user
     async def select_video(self, event):
