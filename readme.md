@@ -1,3 +1,4 @@
 # Troubles 
-- consumer method return still proceed after return statement 
+- not broadcast consumer 
+
 

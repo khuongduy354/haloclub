@@ -71,7 +71,10 @@ class ChatConsumer(AsyncWebsocketConsumer):
             if not self.userList:
                 return
 
-            random.shuffle(self.userList[1:])
+            self.userList = [
+                x for x in self.userList if x["user_id"] != user_id]
+            random.shuffle(self.userList)
+            self.userList.insert(0, user)
 
             user["isSinging"] = True
 
@@ -82,11 +85,16 @@ class ChatConsumer(AsyncWebsocketConsumer):
 
 # end the rating, annouce scores, next singer
 
+
     async def finish_rating(self, event):
         user_id = event["payload"]["user_id"]
+        print(self.userList)
         for (id, user) in enumerate(self.userList):
+            # is singer
             if user["user_id"] == user_id:
                 user["isSinging"] = False
+
+                # if singer is the last one singing
                 if id == len(self.userList) - 1:
                     # winner = get_max_score(self.userList, "score")
                     # TODO:winner
@@ -99,9 +107,12 @@ class ChatConsumer(AsyncWebsocketConsumer):
                     self.startedSinging = False
                     # TODO: quotes here
                     await self.send(text_data=json.dumps({"winner": winner,  "quotes": "", "userList": self.userList, "event_type": "finish_game"}))
+                    break
+
+                # next singer
                 else:
                     next_singer = self.userList[id+1]
-                    await self.send(text_data=json.dumps({"next_singer": next_singer, "total_scores": user["score"], "user_id": user_id, "event_type": "finish_rating"}))
+                    await self.send(text_data=json.dumps({"next_singer": next_singer, "total_scores": str(user["score"]), "user_id": user_id, "event_type": "finish_rating"}))
                     break
 
     # start the rating, each user rate the singer once
