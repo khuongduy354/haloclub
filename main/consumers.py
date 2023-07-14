@@ -4,6 +4,14 @@ from pytube import YouTube
 from channels.generic.websocket import AsyncWebsocketConsumer
 
 
+def get_winner(userList):
+    max_user = userList[0]
+    for user in userList:
+        if user["score"] > max_user["score"]:
+            max_user = user
+    return max_user
+
+
 def get_user(userList: list, attr: str, value):
     for user in userList:
         if user[attr] == value:
@@ -85,34 +93,33 @@ class ChatConsumer(AsyncWebsocketConsumer):
 
 # end the rating, annouce scores, next singer
 
-
     async def finish_rating(self, event):
         user_id = event["payload"]["user_id"]
-        print(self.userList)
         for (id, user) in enumerate(self.userList):
             # is singer
             if user["user_id"] == user_id:
                 user["isSinging"] = False
 
                 # if singer is the last one singing
+                print(self.userList)
                 if id == len(self.userList) - 1:
-                    # winner = get_max_score(self.userList, "score")
-                    # TODO:winner
-                    winner = {"scores": 0, "username": "test"}
+                    winner = get_winner(self.userList)
+
                     # reset everything
                     for user in self.userList:
                         user["score"] = 0
                         user["ratedThisRound"] = False
                         user["isSinging"] = False
                     self.startedSinging = False
-                    # TODO: quotes here
-                    await self.send(text_data=json.dumps({"winner": winner,  "quotes": "", "userList": self.userList, "event_type": "finish_game"}))
+
+                    quote = "You are a super star!"
+                    await self.send(text_data=json.dumps({"winner": winner,  "quote": quote, "userList": self.userList, "event_type": "finish_game"}))
                     break
 
                 # next singer
                 else:
                     next_singer = self.userList[id+1]
-                    await self.send(text_data=json.dumps({"next_singer": next_singer, "total_scores": str(user["score"]), "user_id": user_id, "event_type": "finish_rating"}))
+                    await self.send(text_data=json.dumps({"next_singer": next_singer, "current_singer": user, "event_type": "finish_rating"}))
                     break
 
     # start the rating, each user rate the singer once
