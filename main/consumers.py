@@ -87,54 +87,61 @@ class ChatConsumer(AsyncWebsocketConsumer):
         user_id = event["payload"]["user_id"]
         video_id = event["payload"]["video_id"]
 
-        user = get_user(self.userList, "user_id", user_id)
+        user = get_user(self.room["userList"], "user_id", user_id)
         if not user:
             return
-        if not self.startedSinging:
-            self.startedSinging = True
-            if not self.userList:
-                return
+        if not self.room["startedSinging"]:
+            self.room["startedSinging"] = True
 
-            self.userList = [
-                x for x in self.userList if x["user_id"] != user_id]
-            random.shuffle(self.userList)
-            self.userList.insert(0, user)
-
+            self.room["userList"] = [
+                x for x in self.room["userList"] if x["user_id"] != user_id]
+            random.shuffle(self.room["userList"])
+            self.room["userList"].insert(0, user)
             user["isSinging"] = True
 
-            await self.send(text_data=json.dumps({"video_id": video_id, "user_id": user_id, "singer_name": user["username"], "event_type": "select_video"}))
+            payload = {"event_type": "select_video", "video_id": video_id,
+                       "user_id": user_id, "singer_name": user["username"]}
+            await self.send(text_data=json.dumps(payload))
         elif user["isSinging"]:
-            await self.send(text_data=json.dumps({"video_id": video_id, "user_id": user_id, "singer_name": user["username"], "event_type": "select_video"}))
+            payload = {"video_id": video_id, "user_id": user_id,
+                       "singer_name": user["username"], "event_type": "select_video"}
+            await self.send(text_data=json.dumps(payload))
 
 
 # end the rating, annouce scores, next singer
 
+
     async def finish_rating(self, event):
         user_id = event["payload"]["user_id"]
-        for (id, user) in enumerate(self.userList):
+
+        for (id, user) in enumerate(self.room["userList"]):
             # is singer
             if user["user_id"] == user_id:
                 user["isSinging"] = False
 
                 # if singer is the last one singing
-                if id == len(self.userList) - 1:
-                    winner = get_winner(self.userList)
+                if id == len(self.room["userList"]) - 1:
+                    winner = get_winner(self.room["userList"])
 
                     # reset everything
-                    for user in self.userList:
+                    for user in self.room["userList"]:
                         user["score"] = 0
                         user["ratedThisRound"] = False
                         user["isSinging"] = False
-                    self.startedSinging = False
+                    self.room["startedSinging"] = False
 
                     quote = "You are a super star!"
-                    await self.send(text_data=json.dumps({"winner": winner,  "quote": quote, "userList": self.userList, "event_type": "finish_game"}))
+                    payload = {"event_type": "finish_game", "winner": winner,
+                               "quote": quote, "userList": self.room["userList"]}
+                    await self.send(text_data=json.dumps(payload))
                     break
 
                 # next singer
                 else:
-                    next_singer = self.userList[id+1]
-                    await self.send(text_data=json.dumps({"next_singer": next_singer, "current_singer": user, "event_type": "finish_rating"}))
+                    next_singer = self.room["userList"][id+1]
+                    payload = {"event_type": "finish_rating",
+                               "next_singer": next_singer, "current_singer": user}
+                    await self.send(text_data=json.dumps(payload))
                     break
 
     # start the rating, each user rate the singer once
@@ -142,18 +149,24 @@ class ChatConsumer(AsyncWebsocketConsumer):
         score = event["payload"]["score"]
         user_id = event["payload"]["user_id"]
 
-        target = get_user(self.userList, "isSinging", True)
-        user = get_user(self.userList, "user_id", user_id)
+        target = get_user(self.room["userList"], "isSinging", True)
+        user = get_user(self.room["userList"], "user_id", user_id)
         if target == None or user == None:
             # TODO
             return
 
         if target["user_id"] == user["user_id"]:
-            await self.send(text_data=json.dumps({"user_id": user_id,  "event_type": "start_rating", "singer_name": user["username"]}))
+            payload = {"event_type": "start_rating",
+                       "user_id": user_id, "singer_name": user["username"]}
+            await self.send(text_data=json.dumps(payload))
         elif user["ratedThisRound"] == False:
             target["score"] += int(score)
             user["ratedThisRound"] = True
-            await self.send(text_data=json.dumps({"user_id": user_id, "rate_for": target, "rated_score": score, "event_type": "rating"}))
+
+            payload = {"event_type": "rating", "user_id": user_id,
+                       "rate_for": target, "rated_score": score}
+            await self.send(text_data=json.dumps(payload))
+
 #     # group handler
 #     # type: chat_message forward to this
 #
