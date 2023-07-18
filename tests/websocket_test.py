@@ -3,9 +3,9 @@ import websocket
 import unittest
 
 user1 = {"user_id": 0, "username": "user1",
-         "video_id": "yAbnoYfV99g", "rate_other": 5}
+         "video_id": "yAbnoYfV99g", "rate_score": 5, "rate_for": 1}
 user2 = {"user_id": 1, "username": "user2",
-         "video_id": "m55PTVUrlnA", "rate_other": 10}
+         "video_id": "m55PTVUrlnA", "rate_score": 10, "rate_for": 0}
 
 
 def ws_client(user, action: str, ws):
@@ -15,9 +15,12 @@ def ws_client(user, action: str, ws):
     if action == "select_video":
         payload = {"video_id": user["video_id"], "user_id": user["user_id"]}
     if action == "start_rating":
-        payload = {"score": user["rate_other"], "user_id": user["user_id"]}
+        payload = {"score": user["rate_score"], "user_id": user["user_id"]}
     if action == "finish_rating":
         payload = {"user_id": user["user_id"]}
+    # if action == "rating":
+    #                "user_id": user["user_id"], "rate_for": user["rate_for"]}
+    #     payload = {"rated_score": user["rate_score"],
     if not payload:
         print("invalid action")
         assert False
@@ -52,20 +55,20 @@ class WebSocketTest(unittest.TestCase):
             assert "video_id" in message, "select_video: Must have video_id"
         if event_type == "start_rating":
             print("start_rating")
-            assert message["allowRating"] == True, "start_rating: Must have allowRating"
+            assert "singer_name" in message, "start_rating: Must have current_singer"
         if event_type == "rating":
             print("rating")
             assert "rated_score" in message, "rating: Must have rated_score"
         if event_type == "finish_rating":
             print("finish_rating")
             assert message["next_singer"]["user_id"] == user2["user_id"], "finish_rating: Must have next_singer"
-            assert message["total_scores"] == user2["rate_other"], "finish_rating: Must have total_scores"
-
+            assert message["current_singer"]["score"] == user2["rate_score"], "finish_rating: score must be right"
         if event_type == "finish_game":
             print("finish_game")
-            assert message["winner"]["scores"] == user2["rate_other"], "finish_game: must have winner scores"
+            assert message["winner"]["score"] == user2["rate_score"], "finish_game: must have winner scores"
 
     def on_open(self, ws):
+        # ========== USER 1 singing Turn
         # user 1 join
         ws_client(user1, "initialize", ws)
 
@@ -83,6 +86,21 @@ class WebSocketTest(unittest.TestCase):
 
         # user 1 finish rating
         ws_client(user1, "finish_rating", ws)
+
+        # ========== USER 2 singing Turn
+        # user 2 start select
+        ws_client(user2, "select_video", ws)
+
+        # user 2 start rating
+        ws_client(user2, "start_rating", ws)
+
+        # user 1 rates
+        ws_client(user1, "start_rating", ws)
+
+        # user 2 finish rating
+        ws_client(user2, "finish_rating", ws)
+
+        # finish_game event should be emitted after this
 
         self.assertTrue(True)
 

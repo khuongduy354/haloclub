@@ -28,15 +28,13 @@ class ChatConsumer(AsyncWebsocketConsumer):
         room_name = self.scope["url_route"]["kwargs"]["roomname"]
 
         # setup user's room
-        room = room_data[room_name]
+        if not room_data.get(room_name):
+            room_data[room_name] = {"startedSinging": False, "userList": []}
 
         # setup user's connection
         self.room_name = room_name
         self.room_group_name = "chat_%s" % self.room_name
-        self.room = room
-
-        # TODO
-        room["startedSinging"] = False
+        self.room = room_data[room_name]
 
         # Join room group
         await self.channel_layer.group_add(self.room_group_name, self.channel_name)
@@ -62,8 +60,8 @@ class ChatConsumer(AsyncWebsocketConsumer):
         user_id = event["payload"]["user_id"]
         username = event["payload"]["username"]
 
-        if not self.room.get("userList"):
-            self.room["userList"] = []
+        # if not self.room.get("userList"):
+        #     self.room["userList"] = []
 
         userInfo = {
             "user_id": user_id,
@@ -110,7 +108,6 @@ class ChatConsumer(AsyncWebsocketConsumer):
 
 # end the rating, annouce scores, next singer
 
-
     async def finish_rating(self, event):
         user_id = event["payload"]["user_id"]
 
@@ -123,17 +120,17 @@ class ChatConsumer(AsyncWebsocketConsumer):
                 if id == len(self.room["userList"]) - 1:
                     winner = get_winner(self.room["userList"])
 
+                    quote = "You are a super star!"
+                    payload = {"event_type": "finish_game", "winner": winner,
+                               "quote": quote, "userList": self.room["userList"]}
+                    await self.send(text_data=json.dumps(payload))
+
                     # reset everything
                     for user in self.room["userList"]:
                         user["score"] = 0
                         user["ratedThisRound"] = False
                         user["isSinging"] = False
                     self.room["startedSinging"] = False
-
-                    quote = "You are a super star!"
-                    payload = {"event_type": "finish_game", "winner": winner,
-                               "quote": quote, "userList": self.room["userList"]}
-                    await self.send(text_data=json.dumps(payload))
                     break
 
                 # next singer
