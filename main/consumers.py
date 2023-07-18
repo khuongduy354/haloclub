@@ -3,6 +3,8 @@ from numpy import argpartition, random
 from pytube import YouTube
 from channels.generic.websocket import AsyncWebsocketConsumer
 
+room_data = {}
+
 
 def get_winner(userList):
     max_user = userList[0]
@@ -18,13 +20,23 @@ def get_user(userList: list, attr: str, value):
             return user
     return None
 
+# room_data={"roomname1":{startedSinging:False, userList:...}}
+
 
 class ChatConsumer(AsyncWebsocketConsumer):
     async def connect(self):
-        # scope contain socket info
-        self.startedSinging = False
-        self.room_name = self.scope["url_route"]["kwargs"]["roomname"]
+        room_name = self.scope["url_route"]["kwargs"]["roomname"]
+
+        # setup user's room
+        room = room_data[room_name]
+
+        # setup user's connection
+        self.room_name = room_name
         self.room_group_name = "chat_%s" % self.room_name
+        self.room = room
+
+        # TODO
+        room["startedSinging"] = False
 
         # Join room group
         await self.channel_layer.group_add(self.room_group_name, self.channel_name)
@@ -50,8 +62,9 @@ class ChatConsumer(AsyncWebsocketConsumer):
         user_id = event["payload"]["user_id"]
         username = event["payload"]["username"]
 
-        if not hasattr(self, "userList"):
-            self.userList = []
+        if not self.room.get("userList"):
+            self.room["userList"] = []
+
         userInfo = {
             "user_id": user_id,
             "username": username,
@@ -59,12 +72,15 @@ class ChatConsumer(AsyncWebsocketConsumer):
             "ratedThisRound": False,
             "isSinging": False
         }
-        for user in self.userList:
+        for user in self.room["userList"]:
             if user["user_id"] == user_id:
                 return
-        self.userList.append(userInfo)
+        self.room["userList"].append(userInfo)
 
-        await self.send(text_data=json.dumps({"event_type": "initialize", "userList": self.userList, "new_user": userInfo}))
+        payload = {"event_type": "initialize",
+                   "userList": self.room["userList"], "new_user": userInfo}
+
+        await self.send(text_data=json.dumps(payload))
 
      # broadcast video, determined the current singing user
     async def select_video(self, event):
@@ -101,7 +117,6 @@ class ChatConsumer(AsyncWebsocketConsumer):
                 user["isSinging"] = False
 
                 # if singer is the last one singing
-                print(self.userList)
                 if id == len(self.userList) - 1:
                     winner = get_winner(self.userList)
 
